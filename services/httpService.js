@@ -1,10 +1,11 @@
-let datosAlmacenados = {};
+let datosAlmacenados = {};  // Variable para almacenar datos
 
-exports.guardarDatos = (datos) => {
-    datosAlmacenados = datos;
+const guardarDatos = (datos) => {
+    datosAlmacenados = datos;  // Almacenar los datos recibidos
 };
 
-exports.obtenerDatos = () => {
-    return Object.keys(datosAlmacenados).length ? datosAlmacenados : null;
+const obtenerDatos = () => {
+    return Object.keys(datosAlmacenados).length ? datosAlmacenados : null;  // Retornar datos si existen, de lo contrario null
 };
 
+export default { guardarDatos, obtenerDatos };

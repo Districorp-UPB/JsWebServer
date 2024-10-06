@@ -1,13 +1,11 @@
-const express = require("express");
-const clientController = require("../controllers/clientController");
+import express from "express";  // Importar express
+import clientController from "../controllers/clientController.js";  // Importar el controlador
+import soapController from '../controllers/soapController.js'; // Importar el controlador SOAP
+
 const router = express.Router();
-const soapController = require('../controllers/soapController');
 
 //router.post('/datos', clientController.recibirDatos);
-router.get('/info', clientController.obtenerDatos);
+router.get('/info', clientController.enviarDatos);
 router.post('/authenticate', soapController.authenticateUser);
 
-module.exports = router;
-
-
-
+export default router; 

@@ -1,5 +1,6 @@
-const soapService = require('../services/soapService');
+import soapService from '../services/soapService.js';  // Importar el servicio SOAP
 
+// Función para autenticar al usuario
 const authenticateUser = async (req, res) => {
     const { username, password } = req.body;
 
@@ -12,5 +13,5 @@ const authenticateUser = async (req, res) => {
     }
 };
 
-module.exports = { authenticateUser };
-
+// Exportar la función authenticateUser
+export default { authenticateUser };

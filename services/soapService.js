@@ -1,9 +1,10 @@
-const soap = require('soap');
-const soapConfig = require('../config/soapConfig'); // EndPoint al SOAP server 
+import soap from 'soap';  // Importar el módulo soap
+import soapConfig from '../config/soapConfig.js';  // Importar la configuración del SOAP server
 
 const SOAP_URL = soapConfig.url;
 let storedToken = null;
 
+// Función para autenticar al usuario
 const authenticateUser = async (username, password) => {
     return new Promise((resolve, reject) => {
         soap.createClient(SOAP_URL, (err, client) => {
@@ -38,6 +39,5 @@ const authenticateUser = async (username, password) => {
     });
 };
 
-module.exports = { authenticateUser };
-
-
+// Exportar la función authenticateUser
+export default { authenticateUser };
