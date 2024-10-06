@@ -11,6 +11,6 @@ router.post("/upload/imagen", upload.single('image'), grpcController.uploadImage
 router.post("/upload/video", upload.single('video'), grpcController.uploadVideo);
 
 // Ruta para subir otros archivos
-router.post("/upload/archivos", upload.single('file'), grpcController.uploadFile);
+router.post("/upload/archivo", upload.single('file'), grpcController.uploadFile);
 
 export default router;
