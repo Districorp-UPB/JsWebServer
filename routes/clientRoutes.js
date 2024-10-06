@@ -1,6 +1,6 @@
-import express from "express";  // Importar express
-import clientController from "../controllers/clientController.js";  // Importar el controlador
-import soapController from '../controllers/soapController.js'; // Importar el controlador SOAP
+import express from "express";  
+import clientController from "../controllers/clientController.js";  
+import soapController from '../controllers/soapController.js'; 
 
 const router = express.Router();
 

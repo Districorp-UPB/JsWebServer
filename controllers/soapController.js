@@ -1,6 +1,5 @@
-import soapService from '../services/soapService.js';  // Importar el servicio SOAP
+import soapService from '../services/soapService.js';  
 
-// Función para autenticar al usuario
 const authenticateUser = async (req, res) => {
     const { username, password } = req.body;
 
@@ -13,5 +12,4 @@ const authenticateUser = async (req, res) => {
     }
 };
 
-// Exportar la función authenticateUser
 export default { authenticateUser };

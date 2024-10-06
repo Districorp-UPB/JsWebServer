@@ -1,10 +1,9 @@
-import soap from 'soap';  // Importar el módulo soap
-import soapConfig from '../config/soapConfig.js';  // Importar la configuración del SOAP server
+import soap from 'soap';  
+import soapConfig from '../config/soapConfig.js';  
 
 const SOAP_URL = soapConfig.url;
 let storedToken = null;
 
-// Función para autenticar al usuario
 const authenticateUser = async (username, password) => {
     return new Promise((resolve, reject) => {
         soap.createClient(SOAP_URL, (err, client) => {
@@ -13,18 +12,15 @@ const authenticateUser = async (username, password) => {
                 return reject(err);
             }
 
-            // Acceder directamente al método 'authenticate' disponible en el cliente
             client.authenticate({ Username: username, Password: password }, (err, result) => { 
                 if (err) {
                     console.error('Error en la llamada al método authenticate:', err);
                     return reject(err);
                 }
 
-                // Registrar la respuesta completa del servidor SOAP
                 console.log("SOAP Response:", result);
 
                 try {
-                    // Intentar acceder directamente a 'Token'
                     storedToken = result.Token;
                     if (!storedToken) {
                         throw new Error("Token no encontrado en la respuesta SOAP");
@@ -39,5 +35,4 @@ const authenticateUser = async (username, password) => {
     });
 };
 
-// Exportar la función authenticateUser
 export default { authenticateUser };

@@ -1,11 +1,11 @@
-let datosAlmacenados = {};  // Variable para almacenar datos
+let datosAlmacenados = {};  
 
 const guardarDatos = (datos) => {
-    datosAlmacenados = datos;  // Almacenar los datos recibidos
+    datosAlmacenados = datos;  
 };
 
 const obtenerDatos = () => {
-    return Object.keys(datosAlmacenados).length ? datosAlmacenados : null;  // Retornar datos si existen, de lo contrario null
+    return Object.keys(datosAlmacenados).length ? datosAlmacenados : null;
 };
 
 export default { guardarDatos, obtenerDatos };
