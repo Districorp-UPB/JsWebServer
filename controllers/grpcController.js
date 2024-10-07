@@ -4,45 +4,54 @@ import client from '../services/grpcService.js';  // Asegúrate de importar corr
 import grpc from '@grpc/grpc-js';
 
 // Función para subir imágenes
+// Función para subir imágenes
 const uploadImage = (req, res) => {
+    console.log('Iniciando uploadImage');
+
     if (!req.file) {
+        console.log('No se subió ninguna imagen');
         return res.status(400).send({ message: "No se subió ninguna imagen" });
     }
 
     const { originalname, path: filePath } = req.file;
-    const ownerId = "owner_id_example"; // Puedes reemplazar con el verdadero ID del usuario
-    const fileId = "image_" + Date.now(); // Genera un ID único para el archivo
+    const ownerId = "1"; // Puedes reemplazar con el verdadero ID del usuario
+    const fileId = "2"; // Genera un ID único para el archivo
 
-    const fileStream = fs.createReadStream(filePath);
-    const call = client.Upload((error, response) => {
-        if (error) {
-            return res.status(500).send({ error: 'Error en gRPC: ' + error.message });
+    // Leer el contenido completo del archivo
+    fs.readFile(filePath, (err, fileContent) => {
+        if (err) {
+            console.error('Error al leer el archivo:', err);
+            return res.status(500).send({ error: 'Error al leer el archivo: ' + err.message });
         }
-        res.send({
-            message: "Imagen subida exitosamente a gRPC",
-            fileId: response.file_id,
-        });
-    });
 
-    fileStream.on('data', (chunk) => {
-        call.write({
-            file_id: fileId,
-            owner_id: ownerId,
-            binary_file: chunk,
-            file_name: originalname,
-        });
-    });
+        // Codificar el contenido del archivo a base64
+        const encodedContent = fileContent.toString('base64');
 
-    fileStream.on('end', () => {
-        call.end();
-    });
+        // Crear la solicitud de carga
+        const uploadRequest = {
+            file_id: fileId,           // Debe coincidir con el nombre del campo en el .proto
+            owner_id: ownerId,         // Debe coincidir con el nombre del campo en el .proto
+            binary_file: Buffer.from(encodedContent, 'base64'), // Enviar el contenido codificado como Buffer
+            file_name: originalname     // El nombre original del archivo
+        };
 
-    fileStream.on('error', (error) => {
-        console.error('Error en el stream de lectura del archivo:', error);
-        call.cancel();
-        res.status(500).send({ error: 'Error en la lectura del archivo: ' + error.message });
+        // Llamada gRPC para subir el archivo
+        client.Upload((error, response) => {
+            if (error) {
+                console.error('Error en la subida de imagen a grpc:', error);
+                return res.status(500).send({ error: 'Error en la subida de imagen a grpc: ' + error.message });
+            }
+
+            // Si el servidor responde correctamente, muestra el file_id
+            console.log('Imagen subida con éxito, file_id:', response.file_id);
+            return res.send({
+                message: "Imagen subida exitosamente",
+                fileId: response.file_id,
+            });
+        }).write(uploadRequest);
     });
 };
+
 
 // Función para subir videos
 const uploadVideo = (req, res) => {
