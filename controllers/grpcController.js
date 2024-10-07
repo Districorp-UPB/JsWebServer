@@ -1,27 +1,47 @@
 import fs from 'fs';
 import path from 'path';
-
-// Función para convertir archivo a base64
-const convertToBase64 = (filePath) => {
-    const fileData = fs.readFileSync(filePath);  
-    return Buffer.from(fileData).toString('base64');  
-};
+import client from '../services/grpcService.js';  // Asegúrate de importar correctamente el cliente gRPC
+import grpc from '@grpc/grpc-js';
 
 // Función para subir imágenes
 const uploadImage = (req, res) => {
     if (!req.file) {
         return res.status(400).send({ message: "No se subió ninguna imagen" });
     }
-    
-    // Guardar nombre original y convertir a base64
-    const originalName = req.file.originalname;
-    const base64Data = convertToBase64(req.file.path);
 
-    // Imprimir en la consola
-    console.log("Imagen subida exitosamente:", originalName);
-    console.log("Contenido en Base64:", base64Data);
+    const { originalname, path: filePath } = req.file;
+    const ownerId = "owner_id_example"; // Puedes reemplazar con el verdadero ID del usuario
+    const fileId = "image_" + Date.now(); // Genera un ID único para el archivo
 
-    res.send({ message: "Imagen subida exitosamente", file: req.file });
+    const fileStream = fs.createReadStream(filePath);
+    const call = client.Upload((error, response) => {
+        if (error) {
+            return res.status(500).send({ error: 'Error en gRPC: ' + error.message });
+        }
+        res.send({
+            message: "Imagen subida exitosamente a gRPC",
+            fileId: response.file_id,
+        });
+    });
+
+    fileStream.on('data', (chunk) => {
+        call.write({
+            file_id: fileId,
+            owner_id: ownerId,
+            binary_file: chunk,
+            file_name: originalname,
+        });
+    });
+
+    fileStream.on('end', () => {
+        call.end();
+    });
+
+    fileStream.on('error', (error) => {
+        console.error('Error en el stream de lectura del archivo:', error);
+        call.cancel();
+        res.status(500).send({ error: 'Error en la lectura del archivo: ' + error.message });
+    });
 };
 
 // Función para subir videos
@@ -30,15 +50,40 @@ const uploadVideo = (req, res) => {
         return res.status(400).send({ message: "No se subió ningún video" });
     }
 
-    // Guardar nombre original y convertir a base64
-    const originalName = req.file.originalname;
-    const base64Data = convertToBase64(req.file.path);
+    const { originalname, path: filePath } = req.file;
+    const ownerId = "owner_id_example";
+    const fileId = "video_" + Date.now();
 
-    // Imprimir en la consola
-    console.log("Video subido exitosamente:", originalName);
-    console.log("Contenido en Base64:", base64Data);
+    const fileStream = fs.createReadStream(filePath);
 
-    res.send({ message: "Video subido exitosamente", file: req.file });
+    const call = client.Upload((error, response) => {
+        if (error) {
+            return res.status(500).send({ error: 'Error en gRPC: ' + error.message });
+        }
+        res.send({
+            message: "Video subido exitosamente a gRPC",
+            fileId: response.file_id,
+        });
+    });
+
+    fileStream.on('data', (chunk) => {
+        call.write({
+            file_id: fileId,
+            owner_id: ownerId,
+            binary_file: chunk,
+            file_name: originalname,
+        });
+    });
+
+    fileStream.on('end', () => {
+        call.end();
+    });
+
+    fileStream.on('error', (error) => {
+        console.error('Error en el stream de lectura del archivo:', error);
+        call.cancel();
+        res.status(500).send({ error: 'Error en la lectura del archivo: ' + error.message });
+    });
 };
 
 // Función para subir otros archivos
@@ -47,15 +92,40 @@ const uploadFile = (req, res) => {
         return res.status(400).send({ message: "No se subió ningún archivo" });
     }
 
-    // Guardar nombre original y convertir a base64
-    const originalName = req.file.originalname;
-    const base64Data = convertToBase64(req.file.path);
+    const { originalname, path: filePath } = req.file;
+    const ownerId = "owner_id_example";
+    const fileId = "file_" + Date.now();
 
-    // Imprimir en la consola
-    console.log("Archivo subido exitosamente:", originalName);
-    console.log("Contenido en Base64:", base64Data);
+    const fileStream = fs.createReadStream(filePath);
 
-    res.send({ message: "Archivo subido exitosamente", file: req.file });
+    const call = client.Upload((error, response) => {
+        if (error) {
+            return res.status(500).send({ error: 'Error en gRPC: ' + error.message });
+        }
+        res.send({
+            message: "Archivo subido exitosamente a gRPC",
+            fileId: response.file_id,
+        });
+    });
+
+    fileStream.on('data', (chunk) => {
+        call.write({
+            file_id: fileId,
+            owner_id: ownerId,
+            binary_file: chunk,
+            file_name: originalname,
+        });
+    });
+
+    fileStream.on('end', () => {
+        call.end();
+    });
+
+    fileStream.on('error', (error) => {
+        console.error('Error en el stream de lectura del archivo:', error);
+        call.cancel();
+        res.status(500).send({ error: 'Error en la lectura del archivo: ' + error.message });
+    });
 };
 
 export default {
