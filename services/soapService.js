@@ -4,7 +4,7 @@ import https from 'https';
 import xml2js from 'xml2js'; 
 
 const SOAP_WSDL_URL = soapConfig.url; 
-let storedToken = null;
+let storedToken = null;  
 
 const authenticateUser = async (email, password, ou) => {
     return new Promise((resolve, reject) => {

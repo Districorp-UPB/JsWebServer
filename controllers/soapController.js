@@ -18,3 +18,4 @@ const authenticateUser = async (req, res) => {
 
 export default { authenticateUser };
 
+
