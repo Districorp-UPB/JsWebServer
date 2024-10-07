@@ -1,5 +1,6 @@
-const url = 'http://localhost:8000/soap?wsdl';
 
-export default { url };
+const url = 'https://207.248.81.69:443/auth-api.php?wsdl';
+
+export default { url }; 
 
 
