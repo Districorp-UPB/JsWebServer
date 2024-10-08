@@ -6,6 +6,7 @@ const router = express.Router();
 
 router.post('/authenticate', soapController.authenticateUser);
 
-export default router; 
+router.post('/register', soapController.registerUser);
 
+export default router; 
 

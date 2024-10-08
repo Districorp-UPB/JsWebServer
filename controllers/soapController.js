@@ -16,8 +16,20 @@ const authenticateUser = async (req, res) => {
     }
 };
 
-export default { authenticateUser };
+const registerUser = async (req, res) => {
+    const { name, surname, email, phone, document, password, role } = req.body; 
 
+    if (!name || !surname || !email || !phone || !document || !password || !role) { 
+        return res.status(400).json({ error: 'Faltan parámetros requeridos: name, surname, email, phone, document, password, role' });
+    }
 
+    try {
+        const { status, message } = await soapService.registerUser(name, surname, email, phone, document, password, role); 
+        res.json({ message: 'Usuario registrado correctamente.', status, message });
+    } catch (error) {
+        console.error('Error registrando usuario:', error);
+        res.status(500).json({ error: 'Error de registro' });
+    }    
+};
 
-
+export default { authenticateUser, registerUser };

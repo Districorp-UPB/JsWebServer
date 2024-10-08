@@ -2,7 +2,11 @@ import soap from 'soap';
 import soapConfig from '../config/soapConfig.js'; 
 import https from 'https';
 
-const SOAP_WSDL_URL = soapConfig.url; 
+const SOAP_LOGIN_WSDL_URL = soapConfig.login; 
+const SOAP_REGISTER_WSDL_URL = soapConfig.register;
+console.log('SOAP WSDL URL de Login:', SOAP_LOGIN_WSDL_URL); 
+console.log('SOAP WSDL URL de Registro:', SOAP_REGISTER_WSDL_URL);
+
 let storedToken = null;  
 
 const authenticateUser = async (email, password, ou) => {
@@ -17,7 +21,7 @@ const authenticateUser = async (email, password, ou) => {
             }
         };
 
-        soap.createClient(SOAP_WSDL_URL, options, (err, client) => {
+        soap.createClient(SOAP_LOGIN_WSDL_URL, options, (err, client) => {
             if (err) {
                 console.error('Error creando el cliente SOAP:', err);
                 return reject(err);
@@ -53,6 +57,62 @@ const authenticateUser = async (email, password, ou) => {
     });
 };
 
-export default { authenticateUser };
+const registerUser = async (name, surname, email, phone, document, password, role) => { 
+    return new Promise((resolve, reject) => {
+        const agent = new https.Agent({
+            rejectUnauthorized: false 
+        });
+
+        const options = {
+            wsdl_options: {
+                agent: agent   
+            }
+        };
+
+        console.log('Creando cliente SOAP para registro');
+        soap.createClient(SOAP_REGISTER_WSDL_URL, options, (err, client) => {
+            if (err) {
+                console.error('Error creando el cliente SOAP para registro:', err);
+                return reject(err);
+            }
+            console.log('Cliente SOAP creado exitosamente para registro.');
+
+            const args = {
+                registerRequest: { 
+                    name,
+                    surname,
+                    email,
+                    phone,
+                    document,
+                    password,
+                    role
+                }
+            };
+            console.log('Enviando solicitud SOAP de registro con argumentos:', args);
+            client.register(args, (err, result) => { 
+                if (err) {
+                    console.error('Error en la llamada al método register:', err);
+                    return reject(err);
+                }
+
+                console.log("SOAP Response de registro:", result);
+
+                try {
+                    const status = result.status;
+                    const message = result.message;
+                    if (!status) {
+                        throw new Error("Estado no encontrado en la respuesta SOAP de registro");
+                    }
+                    resolve({ status, message });
+                } catch (parseError) {
+                    console.error('Error procesando la respuesta SOAP de registro:', parseError);
+                    reject(parseError);
+                }
+            });
+        });
+    });
+};
+
+export default { authenticateUser, registerUser };
 
 
