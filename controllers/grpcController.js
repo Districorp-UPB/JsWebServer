@@ -1,10 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import client from '../services/grpcService.js';  // Asegúrate de importar correctamente el cliente gRPC
-import grpc from '@grpc/grpc-js';
 
-// Función para subir imágenes
-// Función para subir imágenes
 // Función para subir imágenes
 const uploadImage = (req, res) => {
     console.log('Iniciando uploadImage');
