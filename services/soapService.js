@@ -2,6 +2,7 @@ import soap from 'soap';
 import soapConfig from '../config/soapConfig.js'; 
 import https from 'https';
 
+
 const SOAP_LOGIN_WSDL_URL = soapConfig.login; 
 const SOAP_REGISTER_WSDL_URL = soapConfig.register;
 console.log('SOAP WSDL URL de Login:', SOAP_LOGIN_WSDL_URL); 
@@ -57,25 +58,23 @@ const authenticateUser = async (email, password, ou) => {
     });
 };
 
-const registerUser = async (name, surname, email, phone, document, password, role) => { 
+const registerUser = async (name, surname, email, phone, document, password, role) => {
     return new Promise((resolve, reject) => {
         const agent = new https.Agent({
-            rejectUnauthorized: false 
+            rejectUnauthorized: false
         });
 
         const options = {
             wsdl_options: {
-                agent: agent   
+                agent: agent
             }
         };
 
-        console.log('Creando cliente SOAP para registro');
         soap.createClient(SOAP_REGISTER_WSDL_URL, options, (err, client) => {
             if (err) {
                 console.error('Error creando el cliente SOAP para registro:', err);
                 return reject(err);
             }
-            console.log('Cliente SOAP creado exitosamente para registro.');
 
             const args = {
                 registerRequest: { 
@@ -85,21 +84,21 @@ const registerUser = async (name, surname, email, phone, document, password, rol
                     phone,
                     document,
                     password,
-                    role
+                    role,
                 }
             };
-            console.log('Enviando solicitud SOAP de registro con argumentos:', args);
-            client.register(args, (err, result) => { 
+
+            client.register(args, (err, result) => {
                 if (err) {
                     console.error('Error en la llamada al método register:', err);
-                    return reject(err);
+                    return reject({ status: 'error', message: err.message || 'Error desconocido' });
                 }
 
                 console.log("SOAP Response de registro:", result);
 
                 try {
-                    const status = result.status;
-                    const message = result.message;
+                    const status = result.parameters?.status;  
+                    const message = result.parameters?.message;
                     if (!status) {
                         throw new Error("Estado no encontrado en la respuesta SOAP de registro");
                     }
@@ -112,6 +111,7 @@ const registerUser = async (name, surname, email, phone, document, password, rol
         });
     });
 };
+
 
 export default { authenticateUser, registerUser };
 

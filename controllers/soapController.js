@@ -19,12 +19,24 @@ const authenticateUser = async (req, res) => {
 const registerUser = async (req, res) => {
     const { name, surname, email, phone, document, password, role } = req.body; 
 
+    // Verifica si falta algún parámetro
     if (!name || !surname || !email || !phone || !document || !password || !role) { 
         return res.status(400).json({ error: 'Faltan parámetros requeridos: name, surname, email, phone, document, password, role' });
     }
 
+    // Validación adicional para el 'document'
+    if (typeof document !== 'string' || document.trim().length === 0) {
+        return res.status(400).json({ error: 'El documento no es válido.' });
+    }
+
     try {
         const { status, message } = await soapService.registerUser(name, surname, email, phone, document, password, role); 
+
+        // Manejo de la respuesta
+        if (status !== 'success') {
+            return res.status(400).json({ message: 'Error en el registro: ' + message });
+        }
+
         res.json({ message: 'Usuario registrado correctamente.', status, message });
     } catch (error) {
         console.error('Error registrando usuario:', error);
