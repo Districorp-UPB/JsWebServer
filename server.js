@@ -1,5 +1,4 @@
 import express from "express";
-//import serverConfig from "./config/serverConfig.js";
 import clientRoutes from "./routes/clientRoutes.js";
 import fileserverRoutes from "./routes/fileserverRoutes.js";
 
