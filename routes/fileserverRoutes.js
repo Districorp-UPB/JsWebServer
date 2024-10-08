@@ -5,7 +5,7 @@ import grpcController from "../controllers/grpcController.js"; // Importa el con
 const router = express.Router();
 
 // Ruta para subir imágenes
-router.post("/upload/imagen", upload.single('image'), grpcController.uploadImage);
+router.post("/upload/imagen/:token", upload.single('image'), grpcController.uploadImage);
 
 // Ruta para subir videos
 router.post("/upload/video", upload.single('video'), grpcController.uploadVideo);

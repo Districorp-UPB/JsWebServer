@@ -1,52 +1,79 @@
-import fs from 'fs';
+import fs from 'fs'; 
 import path from 'path';
-import client from '../services/grpcService.js';  // Asegúrate de importar correctamente el cliente gRPC
+import {Archivo, Imagen, Video} from '../models/index.js';
+import { decodificarJWT } from '../helpers/token.js';
+import { buscarUsuarioPorEmail,crearImagen } from '../services/dbService.js';
+
+const BASE_URL = 'http://localhost:3000/uploads';
 
 // Función para subir imágenes
-const uploadImage = (req, res) => {
+const uploadImage = async (req, res) => {
     console.log('Iniciando uploadImage');
+
+    const { token } = req.params;
+    console.log('Token:', token);
+
+    if (!token) {
+        console.error("Token no proporcionado en la URL");
+        return res.status(400).json({ error: "Token no proporcionado en la URL" });
+    }
+
+    let decodedToken;
+    try {
+        decodedToken = decodificarJWT(token);
+    } catch (error) {
+        if (error.message === 'Token expirado') {
+            console.error('Token expirado');
+            return res.status(401).json({ error: 'Token expirado' });
+        }
+        console.error('Token inválido');
+        return res.status(401).json({ error: 'Token inválido' });
+    }
+
+    const { email } = decodedToken;
+    console.log('Email del usuario:', email);
+
+    let usuario;
+    try {
+        usuario = await buscarUsuarioPorEmail(email);
+        if (!usuario) {
+            console.error('Usuario no encontrado');
+            return res.status(404).json({ error: 'Usuario no encontrado' });
+        }
+
+        console.log('Datos del usuario encontrado:', usuario);
+    } catch (error) {
+        console.error('Error al buscar el usuario:', error);
+        return res.status(500).json({ error: 'Error al buscar el usuario' });
+    }
 
     if (!req.file) {
         console.log('No se subió ninguna imagen');
-        return res.status(400).send({ message: "No se subió ninguna imagen" });
+        return res.status(400).json({ error: "No se subió ninguna imagen" });
     }
 
-    const { originalname, path: filePath } = req.file;
-    const ownerId = "1"; // Puedes reemplazar con el verdadero ID del usuario
-    const fileId = "2"; // Genera un ID único para el archivo (puedes usar un generador de IDs si lo prefieres)
+    const { originalname, filename, path: filePath } = req.file;
+    const fileUrl = `${BASE_URL}/imagenes/${filename}`;
 
-    // Leer el contenido completo del archivo
-    fs.readFile(filePath, (err, fileContent) => {
+    fs.readFile(filePath, async (err, fileContent) => {
         if (err) {
             console.error('Error al leer el archivo:', err);
-            return res.status(500).send({ error: 'Error al leer el archivo: ' + err.message });
+            return res.status(500).json({ error: 'Error al leer el archivo: ' + err.message });
         }
 
-        // Crear la solicitud de carga utilizando FileUploadRequest
-        const uploadRequest = {
-            file_id: fileId,           // ID del archivo
-            owner_id: ownerId,         // ID del propietario del archivo
-            binary_file: fileContent,  // Contenido del archivo leído como Buffer
-            file_name: originalname     // Nombre original del archivo
-        };
+        try {
+            // Llamar al servicio para crear la imagen en la base de datos
+            await crearImagen(originalname, fileUrl, usuario.id, filePath);
 
-        // Llamada gRPC para subir el archivo
-        client.Upload(uploadRequest, (error, response) => {
-            if (error) {
-                console.error('Error en la subida de imagen a gRPC:', error);
-                return res.status(500).send({ error: 'Error en la subida de imagen a gRPC: ' + error.message });
-            }
-
-            // Si el servidor responde correctamente, muestra el file_id
-            console.log('Imagen subida con éxito, file_id:', response.file_id);
-            return res.send({
+            return res.status(200).json({
                 message: "Imagen subida exitosamente",
-                fileId: response.file_id,
+                fileUrl: fileUrl
             });
-        });
+        } catch (dbError) {
+            return res.status(500).json({ error: dbError.message });
+        }
     });
 };
-
 
 // Función para subir videos
 const uploadVideo = (req, res) => {
@@ -54,39 +81,36 @@ const uploadVideo = (req, res) => {
         return res.status(400).send({ message: "No se subió ningún video" });
     }
 
-    const { originalname, path: filePath } = req.file;
+    const { originalname, filename, path: filePath } = req.file;
     const ownerId = "owner_id_example";
-    const fileId = "video_" + Date.now();
+    //const fileId = "video_" + Date.now();
+    const fileUrl = `${BASE_URL}/videos/${filename}`;
 
-    const fileStream = fs.createReadStream(filePath);
-
-    const call = client.Upload((error, response) => {
-        if (error) {
-            return res.status(500).send({ error: 'Error en gRPC: ' + error.message });
+    fs.readFile(filePath, async (err, fileContent) => {
+        if (err) {
+            console.error('Error al leer el archivo:', err);
+            return res.status(500).send({ error: 'Error al leer el archivo: ' + err.message });
         }
-        res.send({
-            message: "Video subido exitosamente a gRPC",
-            fileId: response.file_id,
-        });
-    });
 
-    fileStream.on('data', (chunk) => {
-        call.write({
-            file_id: fileId,
-            owner_id: ownerId,
-            binary_file: chunk,
-            file_name: originalname,
-        });
-    });
+        // Guardar el archivo en la base de datos
+        try {
+            await Video.create({
+                nombre_archivo: originalname,
+                url: fileUrl, // Guardar la URL generada
+                usuario_id: ownerId,
+                ubicacion_archivo: filePath // Ruta donde se guarda el archivo
+            });
 
-    fileStream.on('end', () => {
-        call.end();
-    });
+            console.log('Video guardado en la base de datos.');
 
-    fileStream.on('error', (error) => {
-        console.error('Error en el stream de lectura del archivo:', error);
-        call.cancel();
-        res.status(500).send({ error: 'Error en la lectura del archivo: ' + error.message });
+            return res.send({
+                message: "Video subido exitosamente",
+                fileUrl: fileUrl,  // Enviar la URL en la respuesta
+            });
+        } catch (dbError) {
+            console.error('Error al guardar el video en la base de datos:', dbError);
+            return res.status(500).send({ error: 'Error al guardar el video en la base de datos: ' + dbError.message });
+        }
     });
 };
 
@@ -96,41 +120,39 @@ const uploadFile = (req, res) => {
         return res.status(400).send({ message: "No se subió ningún archivo" });
     }
 
-    const { originalname, path: filePath } = req.file;
+    const { originalname, filename, path: filePath } = req.file;
     const ownerId = "owner_id_example";
-    const fileId = "file_" + Date.now();
+    //const fileId = "file_" + Date.now();
+    const fileUrl = `${BASE_URL}/archivos/${filename}`; // Generar la URL para otros archivos
 
-    const fileStream = fs.createReadStream(filePath);
-
-    const call = client.Upload((error, response) => {
-        if (error) {
-            return res.status(500).send({ error: 'Error en gRPC: ' + error.message });
+    fs.readFile(filePath, async (err, fileContent) => {
+        if (err) {
+            console.error('Error al leer el archivo:', err);
+            return res.status(500).send({ error: 'Error al leer el archivo: ' + err.message });
         }
-        res.send({
-            message: "Archivo subido exitosamente a gRPC",
-            fileId: response.file_id,
-        });
-    });
 
-    fileStream.on('data', (chunk) => {
-        call.write({
-            file_id: fileId,
-            owner_id: ownerId,
-            binary_file: chunk,
-            file_name: originalname,
-        });
-    });
+        // Guardar el archivo en la base de datos
+        try {
+            await Archivo.create({
+                nombre_archivo: originalname,
+                url: fileUrl, // Guardar la URL generada
+                usuario_id: ownerId,
+                ubicacion_archivo: filePath // Ruta donde se guarda el archivo
+            });
 
-    fileStream.on('end', () => {
-        call.end();
-    });
+            console.log('Archivo guardado en la base de datos.');
 
-    fileStream.on('error', (error) => {
-        console.error('Error en el stream de lectura del archivo:', error);
-        call.cancel();
-        res.status(500).send({ error: 'Error en la lectura del archivo: ' + error.message });
+            return res.send({
+                message: "Archivo subido exitosamente",
+                fileUrl: fileUrl, 
+            });
+        } catch (dbError) {
+            console.error('Error al guardar el archivo en la base de datos:', dbError);
+            return res.status(500).send({ error: 'Error al guardar el archivo en la base de datos: ' + dbError.message });
+        }
     });
 };
+
 
 export default {
     uploadImage,
