@@ -13,7 +13,7 @@ const authenticateUser = async (email, password, ou) => {
 
         const options = {
             wsdl_options: {
-                agent: agent 
+                agent: agent   
             }
         };
 
