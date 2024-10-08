@@ -5,6 +5,7 @@ import grpc from '@grpc/grpc-js';
 
 // Función para subir imágenes
 // Función para subir imágenes
+// Función para subir imágenes
 const uploadImage = (req, res) => {
     console.log('Iniciando uploadImage');
 
@@ -15,7 +16,7 @@ const uploadImage = (req, res) => {
 
     const { originalname, path: filePath } = req.file;
     const ownerId = "1"; // Puedes reemplazar con el verdadero ID del usuario
-    const fileId = "2"; // Genera un ID único para el archivo
+    const fileId = "2"; // Genera un ID único para el archivo (puedes usar un generador de IDs si lo prefieres)
 
     // Leer el contenido completo del archivo
     fs.readFile(filePath, (err, fileContent) => {
@@ -24,22 +25,19 @@ const uploadImage = (req, res) => {
             return res.status(500).send({ error: 'Error al leer el archivo: ' + err.message });
         }
 
-        // Codificar el contenido del archivo a base64
-        const encodedContent = fileContent.toString('base64');
-
-        // Crear la solicitud de carga
+        // Crear la solicitud de carga utilizando FileUploadRequest
         const uploadRequest = {
-            file_id: fileId,           // Debe coincidir con el nombre del campo en el .proto
-            owner_id: ownerId,         // Debe coincidir con el nombre del campo en el .proto
-            binary_file: Buffer.from(encodedContent, 'base64'), // Enviar el contenido codificado como Buffer
-            file_name: originalname     // El nombre original del archivo
+            file_id: fileId,           // ID del archivo
+            owner_id: ownerId,         // ID del propietario del archivo
+            binary_file: fileContent,  // Contenido del archivo leído como Buffer
+            file_name: originalname     // Nombre original del archivo
         };
 
         // Llamada gRPC para subir el archivo
-        client.Upload((error, response) => {
+        client.Upload(uploadRequest, (error, response) => {
             if (error) {
-                console.error('Error en la subida de imagen a grpc:', error);
-                return res.status(500).send({ error: 'Error en la subida de imagen a grpc: ' + error.message });
+                console.error('Error en la subida de imagen a gRPC:', error);
+                return res.status(500).send({ error: 'Error en la subida de imagen a gRPC: ' + error.message });
             }
 
             // Si el servidor responde correctamente, muestra el file_id
@@ -48,7 +46,7 @@ const uploadImage = (req, res) => {
                 message: "Imagen subida exitosamente",
                 fileId: response.file_id,
             });
-        }).write(uploadRequest);
+        });
     });
 };
 
