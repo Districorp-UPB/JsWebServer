@@ -327,99 +327,107 @@ const buscarArchivos = async (req, res) => {
 const uploadImageGrpc = async (req, res) => {
     console.log('Iniciando uploadImage');
 
-    const { token } = req.params;
-    console.log('Token:', token);
-
-    if (!token) {
-        console.error("Token no proporcionado en la URL");
-        return res.status(400).json({ error: "Token no proporcionado en la URL" });
-    }
-
-    let decodedToken;
     try {
-        decodedToken = decodificarJWT(token);
-    } catch (error) {
-        if (error.message === 'Token expirado') {
-            console.error('Token expirado');
-            return res.status(401).json({ error: 'Token expirado' });
-        }
-        console.error('Token inválido');
-        return res.status(401).json({ error: 'Token inválido' });
-    }
+        const { token } = req.params;
+        console.log('Token:', token);
 
-    const { email } = decodedToken;
-    console.log('Email del usuario:', email);
-
-    let usuario;
-    try {
-        usuario = await buscarUsuarioPorEmail(email);
-        if (!usuario) {
-            console.error('Usuario no encontrado');
-            return res.status(404).json({ error: 'Usuario no encontrado' });
+        if (!token) {
+            throw new Error("Token no proporcionado en la URL");
         }
 
-        console.log('Datos del usuario encontrado:', usuario);
-    } catch (error) {
-        console.error('Error al buscar el usuario:', error);
-        return res.status(500).json({ error: 'Error al buscar el usuario' });
-    }
-
-    if (!req.file) {
-        console.log('No se subió ninguna imagen');
-        return res.status(400).json({ error: "No se subió ninguna imagen" });
-    }
-
-    const { originalname, filename, path: filePath } = req.file;
-    const fileUrl = `${BASE_URL}/imagenes/${filename}`;
-
-    fs.readFile(filePath, async (err, fileContent) => {
-        if (err) {
-            console.error('Error al leer el archivo:', err);
-            return res.status(500).json({ error: 'Error al leer el archivo: ' + err.message });
-        }
-
+        let decodedToken;
         try {
-            // Llamar al servicio para crear la imagen en la base de datos
-            let imagen = await crearImagen(originalname, fileUrl, usuario.id, filePath);
-
-            // Enviar la imagen al servicio gRPC después de subirla a la base de datos
-            const grpcRequest = {
-                file_id: imagen.id,  // ID de la imagen que acabamos de guardar en la base de datos
-                owner_id: usuario.id,  // ID del usuario
-                binary_file: fileContent,  // El contenido del archivo en binario
-                file_name: originalname  // Nombre original del archivo
-            };
-
-            const call = client.Upload();
-
-            // Enviar datos al servidor gRPC
-            call.write(grpcRequest);
-
-            // Esperar respuesta del servidor gRPC
-            call.end();
-
-            call.on('data', (grpcResponse) => {
-                console.log('Respuesta del servidor gRPC:', grpcResponse);
-
-                return res.status(200).json({
-                    message: "Imagen subida exitosamente",
-                    fileUrl: fileUrl,
-                    usuario: usuario.id,
-                    imagenId: imagen.id,
-                    grpcFileId: grpcResponse.file_id
-                });
-            });
-
-            call.on('error', (grpcError) => {
-                console.error('Error en la llamada gRPC:', grpcError);
-                return res.status(500).json({ error: 'Error en el servicio gRPC: ' + grpcError.message });
-            });
-
-        } catch (dbError) {
-            console.error('Error al guardar la imagen en la base de datos:', dbError);
-            return res.status(500).json({ error: dbError.message });
+            decodedToken = decodificarJWT(token);
+            console.log('Token decodificado:', decodedToken);
+        } catch (error) {
+            console.error('Error al decodificar el token:', error);
+            if (error.message === 'Token expirado') {
+                throw new Error('Token expirado');
+            }
+            throw new Error('Token inválido');
         }
-    });
+
+        const { email } = decodedToken;
+        console.log('Email del usuario:', email);
+
+        const usuario = await buscarUsuarioPorEmail(email);
+        if (!usuario) {
+            throw new Error('Usuario no encontrado');
+        }
+
+        console.log('Datos del usuario encontrado:', JSON.stringify(usuario, null, 2));
+
+        if (!req.file) {
+            throw new Error("No se subió ninguna imagen");
+        }
+
+        const { originalname, filename, path: filePath, size } = req.file;
+        console.log('Detalles del archivo:', { originalname, filename, filePath, size });
+        const fileUrl = `${BASE_URL}/imagenes/${filename}`;
+
+        console.log('Leyendo contenido del archivo...');
+        const fileContent = await fs.promises.readFile(filePath);
+        console.log('Contenido del archivo leído. Tamaño:', fileContent.length);
+        
+        console.log('Creando entrada de imagen en la base de datos...');
+        const imagen = await crearImagen(originalname, fileUrl, usuario.id, filePath);
+        console.log('Imagen creada en la base de datos:', imagen);
+
+        const binaryFile = Buffer.isBuffer(fileContent) ? fileContent : Buffer.from(fileContent);
+
+        const uploadFile = () => {
+            return new Promise((resolve, reject) => {
+                console.log('Iniciando llamada gRPC Upload...');
+                const call = client.Upload((error, response) => {
+                    if (error) {
+                        console.error('Error en la llamada gRPC Upload:', error);
+                        reject(error);
+                    } else {
+                        console.log('Respuesta de la llamada gRPC Upload:', response);
+                        resolve(response);
+                    }
+                });
+
+                const chunkSize = 1024 * 1024; // 1MB chunks
+                let chunkIndex = 0;
+                for (let i = 0; i < binaryFile.length; i += chunkSize) {
+                    const chunk = binaryFile.slice(i, i + chunkSize);
+                    console.log(`Enviando chunk ${chunkIndex + 1}, tamaño: ${chunk.length}`);
+                    call.write({
+                        file_id: String(imagen.id),
+                        owner_id: String(usuario.id),
+                        binary_file: chunk,
+                        file_name: originalname
+                    });
+                    chunkIndex++;
+                }
+                console.log(`Total de chunks enviados: ${chunkIndex}`);
+                call.end();
+                console.log('Llamada gRPC Upload finalizada');
+            });
+        };
+
+        console.log("Iniciando subida de archivo gRPC");
+        const grpcResponse = await uploadFile();
+        console.log('Respuesta del servidor gRPC:', JSON.stringify(grpcResponse, null, 2));
+
+        res.status(200).json({
+            message: "Imagen subida exitosamente",
+            fileUrl: fileUrl,
+            usuario: usuario.id,
+            imagenId: imagen.id,
+            grpcFileId: grpcResponse.file_id
+        });
+
+    } catch (error) {
+        console.error('Error en uploadImageGrpc:', error);
+        console.error('Stack trace:', error.stack);
+        const statusCode = error.message.includes('Token') ? 401 : 500;
+        res.status(statusCode).json({ error: error.message });
+    } finally {
+        console.log('Finalizando uploadImageGrpc');
+        // Aquí puedes agregar código para limpiar archivos temporales si es necesario
+    }
 };
 
 export default {
