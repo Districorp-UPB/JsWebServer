@@ -1,5 +1,5 @@
 import soapService from '../services/soapService.js';  
-import { crearUsuario } from '../services/dbService.js';
+import { crearUsuario,buscarUsuarioPorEmail } from '../services/dbService.js';
 
 const authenticateUser = async (req, res) => {
     const { email, password, ou } = req.body; 
@@ -107,6 +107,29 @@ const listUsers = async (req, res) => {
     }
 };
 
-export default { authenticateUser, registerUser, editUser, deleteUser, listUsers };
+
+const getUserByEmail = async (req, res) => {
+    const { email } = req.params;  
+
+    if (!email) {
+        return res.status(400).json({ error: 'Falta el parámetro requerido: email' });
+    }
+
+    try {
+
+        const usuario = await buscarUsuarioPorEmail(email);
+
+        if (!usuario) {
+            return res.status(404).json({ message: 'Usuario no encontrado' });
+        }
+
+        res.json({ message: 'Usuario encontrado', usuario });
+    } catch (error) {
+        console.error('Error al buscar el usuario por email:', error);
+        res.status(500).json({ error: 'Error al buscar el usuario' });
+    }
+};
+
+export default { authenticateUser, registerUser, editUser, deleteUser, listUsers, getUserByEmail };
 
 

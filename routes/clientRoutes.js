@@ -14,5 +14,7 @@ router.post('/delete', soapController.deleteUser);
 
 router.post('/list', soapController.listUsers); 
 
+router.get('/usuario/:email', soapController.getUserByEmail);
+
 export default router; 
 
