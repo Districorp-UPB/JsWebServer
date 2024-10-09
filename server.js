@@ -1,6 +1,7 @@
 import express from "express";
 import clientRoutes from "./routes/clientRoutes.js";
 import fileserverRoutes from "./routes/fileserverRoutes.js";
+import cors from "cors";
 import db from "./config/db.js";
 
 process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
@@ -8,6 +9,8 @@ process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
 const app = express();
 
 const PORT = process.env.PORT || 4000;
+
+app.use(cors());
 
 app.use(express.static('public'))
 
