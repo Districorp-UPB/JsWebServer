@@ -8,9 +8,9 @@ router.post('/authenticate', soapController.authenticateUser);
 
 router.post('/register/:token', soapController.registerUser);
 
-router.post('/edit', soapController.editUser); 
+router.post('/edit/:token', soapController.editUser); 
 
-router.post('/delete', soapController.deleteUser);
+router.post('/delete/:token', soapController.deleteUser);
 
 router.post('/list/:ou/:token', soapController.listUsers); 
 
