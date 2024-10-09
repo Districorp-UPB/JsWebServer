@@ -12,7 +12,7 @@ router.post('/edit', soapController.editUser);
 
 router.post('/delete', soapController.deleteUser);
 
-router.post('/list/:ou', soapController.listUsers); 
+router.post('/list/:ou/:token', soapController.listUsers); 
 
 router.get('/usuario/:email', soapController.getUserByEmail);
 

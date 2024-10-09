@@ -39,7 +39,7 @@ const registerUser = async (req, res) => {
         return res.status(401).json({ error: 'Token inválido' });
     }
 
-    const { ou: ouFromToken } = decodedToken;  // Extraer el ou (que es el rol) del token
+    const { ou: ouFromToken } = decodedToken;  
     console.log('OU del token (rol):', ouFromToken);
 
     // Verificar si el usuario tiene rol "Admin"
@@ -125,6 +125,33 @@ const listUsers = async (req, res) => {
 
     if (!ou) {
         return res.status(400).json({ error: 'Faltan parámetros requeridos: ou' });
+    }
+    const { token } = req.params;
+    console.log('Token:', token);
+
+    if (!token) {
+        console.error("Token no proporcionado en la URL");
+        return res.status(400).json({ error: "Token no proporcionado en la URL" });
+    }
+
+    let decodedToken;
+    try {
+        decodedToken = decodificarJWT(token);  // Decodificar el token JWT
+    } catch (error) {
+        if (error.message === 'Token expirado') {
+            console.error('Token expirado');
+            return res.status(401).json({ error: 'Token expirado' });
+        }
+        console.error('Token inválido');
+        return res.status(401).json({ error: 'Token inválido' });
+    }
+
+    const { ou: ouFromToken } = decodedToken;  // Extraer el ou (que es el rol) del token
+    console.log('OU del token (rol):', ouFromToken);
+
+    // Verificar si el usuario tiene rol "Admin"
+    if (ouFromToken !== 'Admin') {
+        return res.status(403).json({ error: 'Permisos insuficientes. Solo lo pueden listar los administradores.' });
     }
 
     try {
