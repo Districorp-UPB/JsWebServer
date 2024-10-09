@@ -6,13 +6,13 @@ const router = express.Router();
 
 router.post('/authenticate', soapController.authenticateUser);
 
-router.post('/register', soapController.registerUser);
+router.post('/register/:token', soapController.registerUser);
 
 router.post('/edit', soapController.editUser); 
 
 router.post('/delete', soapController.deleteUser);
 
-router.post('/list', soapController.listUsers); 
+router.post('/list/:ou', soapController.listUsers); 
 
 router.get('/usuario/:email', soapController.getUserByEmail);
 

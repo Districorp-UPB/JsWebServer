@@ -14,7 +14,7 @@ const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
 const fileProto = grpc.loadPackageDefinition(packageDefinition).proto;
 
 const client = new fileProto.FileService(
-    '207.248.81.128:50051',
+    'sistema3.bucaramanga.upb.edu.co:50051',
     grpc.credentials.createInsecure(),
     {
         'grpc.max_receive_message_length': 1024 * 1024 * 1024, // 1GB
@@ -32,7 +32,7 @@ client.waitForReady(Date.now() + 5000, (error) => {
     if (error) {
         console.error('No se pudo conectar al servidor gRPC:', error);
     } else {
-        console.log('Conectado al servidor gRPC: 207.248.81.128:50051');
+        console.log('Conectado al servidor gRPC: sistema3.bucaramanga.upb.edu.co:50051');
     }
 });
 

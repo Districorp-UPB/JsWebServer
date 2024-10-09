@@ -1,5 +1,6 @@
 import soapService from '../services/soapService.js';  
 import { crearUsuario,buscarUsuarioPorEmail } from '../services/dbService.js';
+import { decodificarJWT } from '../helpers/token.js';
 
 const authenticateUser = async (req, res) => {
     const { email, password, ou } = req.body; 
@@ -18,6 +19,34 @@ const authenticateUser = async (req, res) => {
 };
 
 const registerUser = async (req, res) => {
+    const { token } = req.params;
+    console.log('Token:', token);
+
+    if (!token) {
+        console.error("Token no proporcionado en la URL");
+        return res.status(400).json({ error: "Token no proporcionado en la URL" });
+    }
+
+    let decodedToken;
+    try {
+        decodedToken = decodificarJWT(token);  // Decodificar el token JWT
+    } catch (error) {
+        if (error.message === 'Token expirado') {
+            console.error('Token expirado');
+            return res.status(401).json({ error: 'Token expirado' });
+        }
+        console.error('Token inválido');
+        return res.status(401).json({ error: 'Token inválido' });
+    }
+
+    const { ou: ouFromToken } = decodedToken;  // Extraer el ou (que es el rol) del token
+    console.log('OU del token (rol):', ouFromToken);
+
+    // Verificar si el usuario tiene rol "Admin"
+    if (ouFromToken !== 'Admin') {
+        return res.status(403).json({ error: 'Permisos insuficientes. Solo los administradores pueden registrar usuarios.' });
+    }
+
     const { name, surname, email, phone, document, password, ou } = req.body;
 
     if (!name || !surname || !email || !phone || !document || !password || !ou) {
@@ -92,7 +121,7 @@ const deleteUser = async (req, res) => {
 };
 
 const listUsers = async (req, res) => {
-    const { ou } = req.body; 
+    const { ou } = req.params; 
 
     if (!ou) {
         return res.status(400).json({ error: 'Faltan parámetros requeridos: ou' });
