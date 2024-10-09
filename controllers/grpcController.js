@@ -4,7 +4,7 @@ import path from 'path';
 import { decodificarJWT } from '../helpers/token.js';
 import { buscarUsuarioPorEmail,crearImagen,crearVideo,crearArchivo,buscarArchivosdb,buscarVideosdb,buscarImagenesdb } from '../services/dbService.js';
 
-const BASE_URL = 'http://localhost:3000/uploads';
+const BASE_URL = 'http://sistema3.bucaramanga.upb.edu.co:4000/uploads';
 
 // Función para subir imágenes
 const uploadImage = async (req, res) => {
