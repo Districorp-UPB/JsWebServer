@@ -28,8 +28,10 @@ app.use("/api", clientRoutes);
 app.use("/api/fileserver", fileserverRoutes);
 
 app.listen(PORT, () => {
-    console.log(`API corriendo en http://localhost:${PORT}`);
+    console.log(`API corriendo en http://sistema3.bucaramanga.upb.edu.co`);
 });
+
+
 
 
 
