@@ -155,9 +155,9 @@ const deleteUser = async (req, res) => {
 
     // Verificar si el usuario tiene rol "Admin"
     if (ouFromToken !== 'Admin') {
-        return res.status(403).json({ error: 'Permisos insuficientes. Solo lo pueden listar los administradores.' });
+        return res.status(403).json({ error: 'Permisos insuficientes. Solo lo pueden eliminar los administradores.' });
     }
-    
+
     const { email, ou } = req.body;
 
     if (!email || !ou) {
