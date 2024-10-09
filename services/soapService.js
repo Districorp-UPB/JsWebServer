@@ -1,29 +1,29 @@
 import soap from 'soap';
-import soapConfig from '../config/soapConfig.js'; 
+import soapConfig from '../config/soapConfig.js';
 import https from 'https';
 
 
-const SOAP_LOGIN_WSDL_URL = soapConfig.login; 
+const SOAP_LOGIN_WSDL_URL = soapConfig.login;
 const SOAP_REGISTER_WSDL_URL = soapConfig.register;
-const SOAP_UPDATE_WSDL_URL = soapConfig.edit; 
-const SOAP_DELETE_WSDL_URL = soapConfig.delete; 
-console.log('SOAP WSDL URL de Login:', SOAP_LOGIN_WSDL_URL); 
+const SOAP_UPDATE_WSDL_URL = soapConfig.edit;
+const SOAP_DELETE_WSDL_URL = soapConfig.delete;
+console.log('SOAP WSDL URL de Login:', SOAP_LOGIN_WSDL_URL);
 console.log('SOAP WSDL URL de Registro:', SOAP_REGISTER_WSDL_URL);
 console.log('SOAP WSDL URL de Actualización:', SOAP_UPDATE_WSDL_URL);
 console.log('SOAP WSDL URL de Eliminar:', SOAP_DELETE_WSDL_URL);
 
 
-let storedToken = null;  
+let storedToken = null;
 
 const authenticateUser = async (email, password, ou) => {
     return new Promise((resolve, reject) => {
         const agent = new https.Agent({
-            rejectUnauthorized: false 
+            rejectUnauthorized: false
         });
 
         const options = {
             wsdl_options: {
-                agent: agent   
+                agent: agent
             }
         };
 
@@ -82,7 +82,7 @@ const registerUser = async (name, surname, email, phone, document, password, ou)
             }
 
             const args = {
-                registerRequest: { 
+                registerRequest: {
                     name,
                     surname,
                     email,
@@ -102,7 +102,7 @@ const registerUser = async (name, surname, email, phone, document, password, ou)
                 console.log("SOAP Response de registro:", result);
 
                 try {
-                    const status = result.parameters?.status;  
+                    const status = result.parameters?.status;
                     const message = result.parameters?.message;
                     if (!status) {
                         throw new Error("Estado no encontrado en la respuesta SOAP de registro");
@@ -191,11 +191,9 @@ const deleteUser = async (email, ou) => {
             }
 
             const args = {
-                parameters: { 
-                    deleteRequest: {
-                        email,
-                        ou
-                    }
+                deleteRequest: {
+                    email,
+                    ou
                 }
             };
 
@@ -225,6 +223,6 @@ const deleteUser = async (email, ou) => {
 };
 
 
-export default { authenticateUser, registerUser , editUser, deleteUser};
+export default { authenticateUser, registerUser, editUser, deleteUser };
 
 
