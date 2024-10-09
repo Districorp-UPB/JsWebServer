@@ -13,8 +13,6 @@ app.use(express.static('public'))
 
 app.use(express.json());
 
-
-//Conexion a la base de datos
 try{
     await db.authenticate();
     db.sync()

@@ -8,5 +8,9 @@ router.post('/authenticate', soapController.authenticateUser);
 
 router.post('/register', soapController.registerUser);
 
+router.post('/edit', soapController.editUser); 
+
+router.post('/delete', soapController.deleteUser);
+
 export default router; 
 
