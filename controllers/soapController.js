@@ -80,7 +80,22 @@ const deleteUser = async (req, res) => {
     }
 };
 
+const listUsers = async (req, res) => {
+    const { ou } = req.body; 
 
-export default { authenticateUser, registerUser, editUser, deleteUser };
+    if (!ou) {
+        return res.status(400).json({ error: 'Faltan parámetros requeridos: ou' });
+    }
+
+    try {
+        const users = await soapService.listUsers(ou);
+        res.json({ message: 'Usuarios obtenidos correctamente.', users });
+    } catch (error) {
+        console.error('Error obteniendo usuarios:', error);
+        res.status(500).json({ error: 'Error al obtener usuarios' });
+    }
+};
+
+export default { authenticateUser, registerUser, editUser, deleteUser, listUsers };
 
 

@@ -12,5 +12,7 @@ router.post('/edit', soapController.editUser);
 
 router.post('/delete', soapController.deleteUser);
 
+router.post('/list', soapController.listUsers); 
+
 export default router; 
 

@@ -2,15 +2,17 @@ import soap from 'soap';
 import soapConfig from '../config/soapConfig.js';
 import https from 'https';
 
-
 const SOAP_LOGIN_WSDL_URL = soapConfig.login;
 const SOAP_REGISTER_WSDL_URL = soapConfig.register;
 const SOAP_UPDATE_WSDL_URL = soapConfig.edit;
 const SOAP_DELETE_WSDL_URL = soapConfig.delete;
+const SOAP_LIST_USERS_WSDL_URL = soapConfig.listUsers; 
+
 console.log('SOAP WSDL URL de Login:', SOAP_LOGIN_WSDL_URL);
 console.log('SOAP WSDL URL de Registro:', SOAP_REGISTER_WSDL_URL);
 console.log('SOAP WSDL URL de Actualización:', SOAP_UPDATE_WSDL_URL);
 console.log('SOAP WSDL URL de Eliminar:', SOAP_DELETE_WSDL_URL);
+console.log('SOAP WSDL URL de Listar Usuarios:', SOAP_LIST_USERS_WSDL_URL); 
 
 
 let storedToken = null;
@@ -222,7 +224,51 @@ const deleteUser = async (email, ou) => {
     });
 };
 
+const listUsers = async (ou) => {
+    return new Promise((resolve, reject) => {
+        const agent = new https.Agent({
+            rejectUnauthorized: false
+        });
 
-export default { authenticateUser, registerUser, editUser, deleteUser };
+        const options = {
+            wsdl_options: {
+                agent: agent
+            }
+        };
+
+        soap.createClient(SOAP_LIST_USERS_WSDL_URL, options, (err, client) => {
+            if (err) {
+                console.error('Error creando el cliente SOAP para listar usuarios:', err);
+                return reject(err);
+            }
+
+            const args = {
+                listUsersRequest: {
+                    ou
+                }
+            };
+
+            client.listUsers(args, (err, result) => {
+                if (err) {
+                    console.error('Error en la llamada al método listUsers:', err);
+                    return reject({ status: 'error', message: err.message || 'Error desconocido' });
+                }
+
+                console.log("SOAP Response de listar usuarios:", result);
+
+                try {
+                    const parameters = result.parameters || result.listUsersResponse;
+                    const users = parameters.users || parameters; 
+                    resolve(users);
+                } catch (parseError) {
+                    console.error('Error procesando la respuesta SOAP de listar usuarios:', parseError);
+                    reject(parseError);
+                }
+            });
+        });
+    });
+};
+
+export default { authenticateUser, registerUser, editUser, deleteUser, listUsers };
 
 
