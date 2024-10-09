@@ -243,22 +243,33 @@ const listUsers = async (ou) => {
             }
 
             const args = {
-                listUsersRequest: {
+                getUsersByGroupRequest: {
                     ou
                 }
             };
 
-            client.listUsers(args, (err, result) => {
+            // Llamar al método correcto definido en el WSDL
+            client.getUsersByGroup(args, (err, result) => {
                 if (err) {
-                    console.error('Error en la llamada al método listUsers:', err);
+                    console.error('Error en la llamada al método getUsersByGroup:', err);
                     return reject({ status: 'error', message: err.message || 'Error desconocido' });
                 }
 
                 console.log("SOAP Response de listar usuarios:", result);
 
                 try {
-                    const parameters = result.parameters || result.listUsersResponse;
-                    const users = parameters.users || parameters; 
+                    const response = result.parameters;
+                    if (!response) {
+                        throw new Error("Respuesta 'parameters' no encontrada");
+                    }
+
+                    const status = response.status;
+                    const users = response.data?.user || [];
+
+                    if (status !== 'success') {
+                        throw new Error("Error en la respuesta SOAP: " + status);
+                    }
+
                     resolve(users);
                 } catch (parseError) {
                     console.error('Error procesando la respuesta SOAP de listar usuarios:', parseError);
@@ -268,6 +279,7 @@ const listUsers = async (ou) => {
         });
     });
 };
+
 
 export default { authenticateUser, registerUser, editUser, deleteUser, listUsers };
 
