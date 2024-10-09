@@ -8,9 +8,18 @@ const router = express.Router();
 router.post("/upload/imagen/:token", upload.single('image'), grpcController.uploadImage);
 
 // Ruta para subir videos
-router.post("/upload/video", upload.single('video'), grpcController.uploadVideo);
+router.post("/upload/video/:token", upload.single('video'), grpcController.uploadVideo);
 
 // Ruta para subir otros archivos
-router.post("/upload/archivo", upload.single('file'), grpcController.uploadFile);
+router.post("/upload/archivo/:token", upload.single('file'), grpcController.uploadFile);
+
+// Ruta para buscar imágenes
+router.get("/imagenes/:token", grpcController.buscarImagenes);
+
+// Ruta para buscar videos
+router.get("/videos/:token", grpcController.buscarVideos);
+
+// Ruta para buscar archivos
+router.get("/archivos/:token", grpcController.buscarArchivos);
 
 export default router;

@@ -14,7 +14,14 @@ app.use(express.static('public'))
 app.use(express.json());
 
 
-
+//Conexion a la base de datos
+try{
+    await db.authenticate();
+    db.sync()
+    console.log(`Conexión Correcta a ${process.env.DATABASE} de MySQL`)
+} catch(error){
+    console.log(error)
+}
 
 app.use("/api", clientRoutes);
 app.use("/api/fileserver", fileserverRoutes);
