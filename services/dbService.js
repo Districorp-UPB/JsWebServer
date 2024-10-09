@@ -127,6 +127,33 @@ const buscarArchivosdb = async (usuarioId) => {
     }
 };
 
+const crearUsuario = async (name, surname, email, phone, password, cedula, usertype) => {
+    try {
+        // Verificar si el usuario ya existe
+        const usuarioExistente = await Usuario.findOne({ where: { email } });
+        if (usuarioExistente) {
+            return { message: 'El usuario con ese email ya está registrado' };
+        }
+
+        // Crear el nuevo usuario
+        const nuevoUsuario = await Usuario.create({
+            name,
+            surname,
+            email,
+            phone,
+            password,
+            cedula,
+            usertype
+        });
+
+        console.log('Usuario creado correctamente en la base de datos.');
+        return { message: 'Usuario creado correctamente', usuario: nuevoUsuario };
+    } catch (error) {
+        console.error('Error al crear el usuario en la base de datos:', error);
+        throw new Error('Error al crear el usuario en la base de datos');
+    }
+};
+
 export {
     buscarUsuarioPorEmail,
     crearImagen,
@@ -134,6 +161,7 @@ export {
     crearVideo,
     buscarImagenesdb,
     buscarArchivosdb,
-    buscarVideosdb
+    buscarVideosdb,
+    crearUsuario
 
 }

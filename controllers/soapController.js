@@ -1,4 +1,5 @@
 import soapService from '../services/soapService.js';  
+import { crearUsuario } from '../services/dbService.js';
 
 const authenticateUser = async (req, res) => {
     const { email, password, ou } = req.body; 
@@ -17,9 +18,9 @@ const authenticateUser = async (req, res) => {
 };
 
 const registerUser = async (req, res) => {
-    const { name, surname, email, phone, document, password, ou } = req.body; 
+    const { name, surname, email, phone, document, password, ou } = req.body;
 
-    if (!name || !surname || !email || !phone || !document || !password || !ou) { 
+    if (!name || !surname || !email || !phone || !document || !password || !ou) {
         return res.status(400).json({ error: 'Faltan parámetros requeridos: name, surname, email, phone, document, password, ou' });
     }
 
@@ -28,16 +29,26 @@ const registerUser = async (req, res) => {
     }
 
     try {
-        const { status, message } = await soapService.registerUser(name, surname, email, phone, document, password, ou); 
+        // Llamar al servicio SOAP para registrar al usuario
+        const { status, message } = await soapService.registerUser(name, surname, email, phone, document, password, ou);
+
         if (status !== 'success') {
             return res.status(400).json({ message: 'Error en el registro: ' + message });
         }
 
-        res.json({ message: 'Usuario registrado correctamente.', status, message });
+        // Si el registro SOAP es exitoso, crear el usuario en la base de datos
+        const { message: dbMessage, usuario } = await crearUsuario(name, surname, email, phone, password, document, ou);
+
+        // Verificar si hubo algún problema al crear el usuario
+        if (!usuario) {
+            return res.status(400).json({ message: dbMessage });
+        }
+
+        res.json({ message: 'Usuario registrado correctamente en la base de datos y SOAP.', status, usuario });
     } catch (error) {
         console.error('Error registrando usuario:', error);
         res.status(500).json({ error: 'Error de registro' });
-    }    
+    }
 };
 
 const editUser = async (req, res) => {
