@@ -1,10 +1,10 @@
 
 const soapConfig = {
-    login: 'https://207.248.81.69:443/api/auth-api.php?wsdl',
-    register: 'https://207.248.81.69:443/api/regis-api.php?wsdl',
-    edit: 'https://207.248.81.69/api/edit-api.php?wsdl',
-    delete: 'https://207.248.81.69/api/del-api.php?wsdl',
-    listUsers: 'https://207.248.81.69/api/users-api.php?wsdl' 
+    login: 'https://sistema1.bucaramanga.upb.edu.co/api/auth-api.php?wsdl', 
+    register: 'https://sistema1.bucaramanga.upb.edu.co/api/regis-api.php?wsdl', 
+    edit: 'https://sistema1.bucaramanga.upb.edu.co/api/edit-api.php?wsdl', 
+    delete: 'https://sistema1.bucaramanga.upb.edu.co/api/del-api.php?wsdl', 
+    listUsers: 'https://sistema1.bucaramanga.upb.edu.co/api/users-api.php?wsdl' 
 };
 
 export default soapConfig;
