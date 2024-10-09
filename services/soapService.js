@@ -14,7 +14,6 @@ console.log('SOAP WSDL URL de Actualización:', SOAP_UPDATE_WSDL_URL);
 console.log('SOAP WSDL URL de Eliminar:', SOAP_DELETE_WSDL_URL);
 console.log('SOAP WSDL URL de Listar Usuarios:', SOAP_LIST_USERS_WSDL_URL); 
 
-
 let storedToken = null;
 
 const authenticateUser = async (email, password, ou) => {
@@ -248,7 +247,6 @@ const listUsers = async (ou) => {
                 }
             };
 
-            // Llamar al método correcto definido en el WSDL
             client.getUsersByGroup(args, (err, result) => {
                 if (err) {
                     console.error('Error en la llamada al método getUsersByGroup:', err);
