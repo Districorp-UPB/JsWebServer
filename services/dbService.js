@@ -154,6 +154,34 @@ const crearUsuario = async (name, surname, email, phone, password, cedula, usert
     }
 };
 
+const editarUsuario = async (email, name, surname, phone, cedula) => {
+    try {
+        // Buscar el usuario por email
+        const usuario = await Usuario.findOne({ where: { email } });
+
+        // Verificar si el usuario fue encontrado
+        if (!usuario) {
+            return { message: 'Usuario no encontrado' };
+        }
+
+        // Actualizar los campos permitidos
+        usuario.name = name;
+        usuario.surname = surname;
+        usuario.phone = phone;
+        usuario.cedula = cedula;
+
+        // Guardar los cambios en la base de datos
+        await usuario.save();
+
+        console.log('Usuario actualizado correctamente en la base de datos.');
+        return { message: 'Usuario actualizado correctamente', usuario };
+    } catch (error) {
+        console.error('Error al actualizar el usuario en la base de datos:', error);
+        throw new Error('Error al actualizar el usuario en la base de datos');
+    }
+};
+
+
 export {
     buscarUsuarioPorEmail,
     crearImagen,
@@ -162,6 +190,7 @@ export {
     buscarImagenesdb,
     buscarArchivosdb,
     buscarVideosdb,
-    crearUsuario
+    crearUsuario,
+    editarUsuario
 
 }

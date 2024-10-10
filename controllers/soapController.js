@@ -1,5 +1,5 @@
 import soapService from '../services/soapService.js';  
-import { crearUsuario,buscarUsuarioPorEmail } from '../services/dbService.js';
+import { crearUsuario,buscarUsuarioPorEmail,editarUsuario } from '../services/dbService.js';
 import { decodificarJWT } from '../helpers/token.js';
 
 const authenticateUser = async (req, res) => {
@@ -128,6 +128,7 @@ const editUser = async (req, res) => {
         res.status(500).json({ error: 'Error de edición' });
     }    
 };
+
 const editUserMe = async (req, res) => {
     const { token } = req.params;
     console.log('Token:', token);
@@ -149,7 +150,7 @@ const editUserMe = async (req, res) => {
         return res.status(401).json({ error: 'Token inválido' });
     }
 
-    const { email: emailFromToken} = decodedToken; 
+    const { email: emailFromToken } = decodedToken; 
     console.log('Email del token:', emailFromToken);
 
     const { email, ou, name, surname, phone, document } = req.body; 
@@ -169,12 +170,16 @@ const editUserMe = async (req, res) => {
             return res.status(400).json({ message: 'Error en la edición: ' + message });
         }
 
+        // Si la edición en el servicio SOAP fue exitosa, actualizar en la base de datos
+        await editarUsuario(email, name, surname, phone, document);
+
         res.json({ message: 'Usuario editado correctamente.', status, message });
     } catch (error) {
         console.error('Error editando usuario:', error);
         res.status(500).json({ error: 'Error de edición' });
     }    
 };
+
 
 const deleteUser = async (req, res) => {
     const { token } = req.params;
