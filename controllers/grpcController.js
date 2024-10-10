@@ -434,8 +434,14 @@ const buscarImagenesGrpc = async (req, res) => {
     const resultado = await buscarImagenesdb(usuario.id);
     console.log('Resultado de la búsqueda de imágenes:', resultado);
 
-    if (resultado.error) {
-        return res.status(500).json({ error: resultado.error });
+    // Manejar el caso donde no se encuentran imágenes
+    if (!resultado || (Array.isArray(resultado) && resultado.length === 0)) {
+        return res.status(404).json({ message: 'No se encontraron imágenes' });
+    }
+
+    // Verificar si el resultado es un array antes de mapear
+    if (!Array.isArray(resultado)) {
+        return res.status(500).json({ error: 'Error en el formato de resultado' });
     }
 
     try {
@@ -589,8 +595,14 @@ const buscarVideosGrpc = async (req, res) => {
     const resultado = await buscarVideosdb(usuario.id); 
     console.log('Resultado de la búsqueda de videos:', resultado);
 
-    if (resultado.error) {
-        return res.status(500).json({ error: resultado.error });
+    // Manejar el caso donde no se encuentran videos
+    if (!resultado || (Array.isArray(resultado) && resultado.length === 0)) {
+        return res.status(404).json({ message: 'No se encontraron videos' });
+    }
+
+    // Verificar si el resultado es un array antes de mapear
+    if (!Array.isArray(resultado)) {
+        return res.status(500).json({ error: 'Error en el formato de resultado' });
     }
 
     try {
@@ -639,6 +651,7 @@ const buscarVideosGrpc = async (req, res) => {
         return res.status(500).json({ error: 'Error al descargar videos' });
     }
 };
+
 
 const uploadFileGrpc = async (req, res) => {
     console.log('Iniciando uploadFileGrpc');
@@ -750,11 +763,17 @@ const buscarArchivosGrpc = async (req, res) => {
         return res.status(500).json({ error: 'Error al buscar el usuario' });
     }
 
-    const resultado = await buscarArchivosdb(usuario.id); 
+    const resultado = await buscarArchivosdb(usuario.id);
     console.log('Resultado de la búsqueda de archivos:', resultado);
 
-    if (resultado.error) {
-        return res.status(500).json({ error: resultado.error });
+    // Manejar el caso donde no se encuentran archivos
+    if (!resultado || (Array.isArray(resultado) && resultado.length === 0)) {
+        return res.status(404).json({ message: 'No se encontraron archivos' });
+    }
+
+    // Verificar si el resultado es un array antes de mapear
+    if (!Array.isArray(resultado)) {
+        return res.status(500).json({ error: 'Error en el formato de resultado' });
     }
 
     try {
@@ -803,6 +822,7 @@ const buscarArchivosGrpc = async (req, res) => {
         return res.status(500).json({ error: 'Error al descargar archivos' });
     }
 };
+
 
 
 
