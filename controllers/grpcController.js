@@ -396,7 +396,7 @@ const uploadImageGrpc = async (req, res) => {
                     call.write({
                         file_id: String(imagen.id),
                         owner_id: String(usuario.id),
-                        binary_file: chunk,
+                        binary_file: chunk.toString('base64'), // Codificar a base64
                         file_name: originalname
                     });
                     chunkIndex++;
@@ -426,7 +426,6 @@ const uploadImageGrpc = async (req, res) => {
         res.status(statusCode).json({ error: error.message });
     } finally {
         console.log('Finalizando uploadImageGrpc');
-        // Aquí puedes agregar código para limpiar archivos temporales si es necesario
     }
 };
 
