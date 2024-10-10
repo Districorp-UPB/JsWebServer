@@ -14,6 +14,8 @@ router.post("/upload/archivo/:token", upload.single('file'), grpcController.uplo
 
 router.get("/imagenes/:token", grpcController.buscarImagenes);
 
+router.get("/grpc/imagenes/:token", grpcController.buscarImagenesGrpc);
+
 router.get("/videos/:token", grpcController.buscarVideos);
 
 router.get("/archivos/:token", grpcController.buscarArchivos);

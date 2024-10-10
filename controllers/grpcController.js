@@ -361,19 +361,20 @@ const uploadImageGrpc = async (req, res) => {
             throw new Error("No se subió ninguna imagen");
         }
 
-        const { originalname, filename, path: filePath, size } = req.file;
-        console.log('Detalles del archivo:', { originalname, filename, filePath, size });
+        const { originalname, filename } = req.file;
+        console.log('Detalles del archivo:', { originalname, filename });
         const fileUrl = `${BASE_URL}/imagenes/${filename}`;
 
         console.log('Leyendo contenido del archivo...');
-        const fileContent = await fs.promises.readFile(filePath);
+        const fileContent = await fs.promises.readFile(req.file.path); // Asegúrate de usar req.file.path
         console.log('Contenido del archivo leído. Tamaño:', fileContent.length);
         
         console.log('Creando entrada de imagen en la base de datos...');
-        const imagen = await crearImagen(originalname, fileUrl, usuario.id, filePath);
+        const imagen = await crearImagen(originalname, fileUrl, usuario.id, req.file.path);
         console.log('Imagen creada en la base de datos:', imagen);
 
         const binaryFile = Buffer.isBuffer(fileContent) ? fileContent : Buffer.from(fileContent);
+        const base64File = binaryFile.toString('base64'); // Convertir a base64
 
         const uploadFile = () => {
             return new Promise((resolve, reject) => {
@@ -388,21 +389,15 @@ const uploadImageGrpc = async (req, res) => {
                     }
                 });
 
-                const chunkSize = 1024 * 1024; // 1MB chunks
-                let chunkIndex = 0;
-                for (let i = 0; i < binaryFile.length; i += chunkSize) {
-                    const chunk = binaryFile.slice(i, i + chunkSize);
-                    console.log(`Enviando chunk ${chunkIndex + 1}, tamaño: ${chunk.length}`);
-                    call.write({
-                        file_id: String(imagen.id),
-                        owner_id: String(usuario.id),
-                        binary_file: chunk.toString('base64'), // Codificar a base64
-                        file_name: originalname
-                    });
-                    chunkIndex++;
-                }
-                console.log(`Total de chunks enviados: ${chunkIndex}`);
-                call.end();
+                // Enviar el archivo completo en una sola llamada
+                call.write({
+                    file_id: String(imagen.id),
+                    owner_id: String(usuario.id),
+                    binary_file: base64File, // Enviar archivo completo en base64
+                    file_name: originalname
+                });
+
+                call.end(); // Finalizar la llamada
                 console.log('Llamada gRPC Upload finalizada');
             });
         };
@@ -429,6 +424,76 @@ const uploadImageGrpc = async (req, res) => {
     }
 };
 
+const buscarImagenesGrpc = async (req, res) => {
+    const { token } = req.params;
+
+    if (!token) {
+        return res.status(400).json({ error: "Token no proporcionado en la URL" });
+    }
+
+    let decodedToken;
+    try {
+        decodedToken = decodificarJWT(token);
+    } catch (error) {
+        return res.status(401).json({ error: 'Token inválido o expirado' });
+    }
+
+    const { email } = decodedToken;
+
+    let usuario;
+    try {
+        usuario = await buscarUsuarioPorEmail(email);
+        if (!usuario) {
+            return res.status(404).json({ error: 'Usuario no encontrado' });
+        }
+    } catch (error) {
+        return res.status(500).json({ error: 'Error al buscar el usuario' });
+    }
+
+    const resultado = await buscarImagenesdb(usuario.id);
+
+    if (resultado.error) {
+        return res.status(500).json({ error: resultado.error });
+    }
+
+    try {
+        // Usar gRPC para descargar las imágenes
+        const images = await Promise.all(resultado.map(async (imagen) => {
+            const imageDownloadRequest = {
+                file_id: String(imagen.id),      // ID de la imagen
+                owner_id: String(usuario.id)      // ID del propietario
+            };
+
+            return new Promise((resolve, reject) => {
+                const call = client.Download(imageDownloadRequest);
+                let binaryFile = null;
+
+                call.on('data', (response) => {
+                    binaryFile = response.binary_file_response; // Almacenar los datos binarios
+                });
+
+                call.on('end', () => {
+                    if (binaryFile) {
+                        resolve({ id: imagen.id, usuario_id: imagen.usuario_id, binary_file: binaryFile });
+                    } else {
+                        reject(new Error('No se pudo obtener el archivo'));
+                    }
+                });
+
+                call.on('error', (error) => {
+                    reject(error);
+                });
+            });
+        }));
+
+        // Enviar la respuesta final con las imágenes
+        return res.status(200).json(images);
+    } catch (error) {
+        console.error('Error al descargar imágenes a través de gRPC:', error);
+        return res.status(500).json({ error: 'Error al descargar imágenes' });
+    }
+};
+
 export default {
     uploadImage,
     uploadVideo,
@@ -436,5 +501,6 @@ export default {
     buscarImagenes,
     buscarVideos,
     buscarArchivos,
-    uploadImageGrpc
+    uploadImageGrpc,
+    buscarImagenesGrpc
 };
