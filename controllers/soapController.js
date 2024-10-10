@@ -128,6 +128,53 @@ const editUser = async (req, res) => {
         res.status(500).json({ error: 'Error de edición' });
     }    
 };
+const editUserMe = async (req, res) => {
+    const { token } = req.params;
+    console.log('Token:', token);
+
+    if (!token) {
+        console.error("Token no proporcionado en la URL");
+        return res.status(400).json({ error: "Token no proporcionado en la URL" });
+    }
+
+    let decodedToken;
+    try {
+        decodedToken = decodificarJWT(token);
+    } catch (error) {
+        if (error.message === 'Token expirado') {
+            console.error('Token expirado');
+            return res.status(401).json({ error: 'Token expirado' });
+        }
+        console.error('Token inválido');
+        return res.status(401).json({ error: 'Token inválido' });
+    }
+
+    const { email: emailFromToken} = decodedToken; 
+    console.log('Email del token:', emailFromToken);
+
+    const { email, ou, name, surname, phone, document } = req.body; 
+
+    if (!email || !ou || !name || !surname || !phone || !document) {
+        return res.status(400).json({ error: 'Faltan parámetros requeridos: email, ou, name, surname, phone, document' });
+    }
+
+    // Verificar que el usuario que se quiere editar es el mismo usuario que está editando
+    if (email !== emailFromToken) {
+        return res.status(403).json({ error: 'No tienes permiso para editar a otros usuarios.' });
+    }
+
+    try {
+        const { status, message } = await soapService.editUser(email, ou, name, surname, phone, document); 
+        if (status !== 'success') {
+            return res.status(400).json({ message: 'Error en la edición: ' + message });
+        }
+
+        res.json({ message: 'Usuario editado correctamente.', status, message });
+    } catch (error) {
+        console.error('Error editando usuario:', error);
+        res.status(500).json({ error: 'Error de edición' });
+    }    
+};
 
 const deleteUser = async (req, res) => {
     const { token } = req.params;
@@ -243,6 +290,6 @@ const getUserByEmail = async (req, res) => {
     }
 };
 
-export default { authenticateUser, registerUser, editUser, deleteUser, listUsers, getUserByEmail };
+export default { authenticateUser, registerUser, editUser, deleteUser, listUsers, getUserByEmail, editUserMe };
 
 

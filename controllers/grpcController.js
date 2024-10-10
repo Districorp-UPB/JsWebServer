@@ -451,6 +451,7 @@ const buscarImagenesGrpc = async (req, res) => {
     }
 
     const resultado = await buscarImagenesdb(usuario.id);
+    console.log('Resultado de la búsqueda de imágenes:', resultado);
 
     if (resultado.error) {
         return res.status(500).json({ error: resultado.error });
@@ -459,6 +460,8 @@ const buscarImagenesGrpc = async (req, res) => {
     try {
         // Usar gRPC para descargar las imágenes
         const images = await Promise.all(resultado.map(async (imagen) => {
+            console.log('imagen id:', imagen.id);
+            console.log('usuario id:', usuario.id);
             const imageDownloadRequest = {
                 file_id: String(imagen.id),      // ID de la imagen
                 owner_id: String(usuario.id)      // ID del propietario
@@ -474,7 +477,9 @@ const buscarImagenesGrpc = async (req, res) => {
 
                 call.on('end', () => {
                     if (binaryFile) {
-                        resolve({ id: imagen.id, usuario_id: imagen.usuario_id, binary_file: binaryFile });
+                        // Convertir el Buffer a Base64
+                        const base64File = binaryFile.toString('base64');
+                        resolve({ id: imagen.id, usuario_id: imagen.usuario_id, nombre_archivo: imagen.nombre_archivo, binary_file: base64File });
                     } else {
                         reject(new Error('No se pudo obtener el archivo'));
                     }
