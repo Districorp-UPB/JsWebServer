@@ -472,13 +472,339 @@ const buscarImagenesGrpc = async (req, res) => {
             });
         }));
 
-        // Enviar la respuesta final con las imágenes
         return res.status(200).json(images);
     } catch (error) {
         console.error('Error al descargar imágenes a través de gRPC:', error);
         return res.status(500).json({ error: 'Error al descargar imágenes' });
     }
 };
+
+const uploadVideoGrpc = async (req, res) => {
+    console.log('Iniciando uploadVideo');
+
+    try {
+        const { token } = req.params;
+
+        if (!token) {
+            throw new Error("Token no proporcionado en la URL");
+        }
+
+        let decodedToken;
+        try {
+            decodedToken = decodificarJWT(token);
+        } catch (error) {
+            console.error('Error al decodificar el token:', error);
+            throw new Error(error.message === 'Token expirado' ? 'Token expirado' : 'Token inválido');
+        }
+
+        const { email } = decodedToken;
+
+        const usuario = await buscarUsuarioPorEmail(email);
+        if (!usuario) {
+            throw new Error('Usuario no encontrado');
+        }
+
+        if (!req.file) {
+            throw new Error("No se subió ningún video");
+        }
+
+        const { originalname, filename } = req.file;
+        const fileUrl = `${BASE_URL}/videos/${filename}`;
+
+        const fileContent = await fs.promises.readFile(req.file.path);
+        
+        const video = await crearVideo(originalname, fileUrl, usuario.id, req.file.path);
+
+        // Convertir el contenido del archivo a base64
+        const binaryFile = Buffer.isBuffer(fileContent) ? fileContent : Buffer.from(fileContent);
+        const base64File = binaryFile.toString('base64');
+
+        // Función para subir el video a través de gRPC
+        const uploadFile = () => {
+            return new Promise((resolve, reject) => {
+                const call = client.Upload((error, response) => {
+                    if (error) {
+                        reject(error);
+                    } else {
+                        resolve(response);
+                    }
+                });
+
+                call.write({
+                    file_id: String(video.id), 
+                    owner_id: String(usuario.id),
+                    binary_file: base64File,
+                    file_name: originalname
+                });
+
+                call.end();
+            });
+        };
+
+        const grpcResponse = await uploadFile();
+
+        res.status(200).json({
+            message: "Video subido exitosamente",
+            fileUrl: fileUrl,
+            usuario: usuario.id,
+            videoId: video.id,
+            grpcFileId: grpcResponse.file_id
+        });
+
+    } catch (error) {
+        console.error('Error en uploadVideo:', error);
+        const statusCode = error.message.includes('Token') ? 401 : 500;
+        res.status(statusCode).json({ error: error.message });
+    } finally {
+        console.log('Finalizando uploadVideo');
+    }
+};
+
+const buscarVideosGrpc = async (req, res) => {
+    const { token } = req.params;
+
+    if (!token) {
+        return res.status(400).json({ error: "Token no proporcionado en la URL" });
+    }
+
+    let decodedToken;
+    try {
+        decodedToken = decodificarJWT(token);
+    } catch (error) {
+        return res.status(401).json({ error: 'Token inválido o expirado' });
+    }
+
+    const { email } = decodedToken;
+
+    let usuario;
+    try {
+        usuario = await buscarUsuarioPorEmail(email);
+        if (!usuario) {
+            return res.status(404).json({ error: 'Usuario no encontrado' });
+        }
+    } catch (error) {
+        return res.status(500).json({ error: 'Error al buscar el usuario' });
+    }
+
+    const resultado = await buscarVideosdb(usuario.id); 
+    console.log('Resultado de la búsqueda de videos:', resultado);
+
+    if (resultado.error) {
+        return res.status(500).json({ error: resultado.error });
+    }
+
+    try {
+        // Usar gRPC para descargar los videos
+        const videos = await Promise.all(resultado.map(async (video) => {
+            console.log('Video ID:', video.id);
+            console.log('Usuario ID:', usuario.id);
+
+            const videoDownloadRequest = {
+                file_id: String(video.id),      // ID del video
+                owner_id: String(usuario.id)     // ID del propietario
+            };
+
+            return new Promise((resolve, reject) => {
+                const call = client.Download(videoDownloadRequest);
+                let binaryFile = null;
+
+                call.on('data', (response) => {
+                    binaryFile = response.binary_file_response; 
+                });
+
+                call.on('end', () => {
+                    if (binaryFile) {
+                        // Convertir el Buffer a Base64
+                        const base64File = binaryFile.toString('base64');
+                        resolve({
+                            id: video.id,
+                            usuario_id: video.usuario_id,
+                            nombre_archivo: video.nombre_archivo,
+                            binary_file: base64File
+                        });
+                    } else {
+                        reject(new Error('No se pudo obtener el archivo'));
+                    }
+                });
+
+                call.on('error', (error) => {
+                    reject(error);
+                });
+            });
+        }));
+
+        return res.status(200).json(videos);
+    } catch (error) {
+        console.error('Error al descargar videos a través de gRPC:', error);
+        return res.status(500).json({ error: 'Error al descargar videos' });
+    }
+};
+
+const uploadFileGrpc = async (req, res) => {
+    console.log('Iniciando uploadFileGrpc');
+
+    try {
+        const { token } = req.params;
+        console.log('Token:', token);
+
+        if (!token) {
+            throw new Error("Token no proporcionado en la URL");
+        }
+
+        let decodedToken;
+        try {
+            decodedToken = decodificarJWT(token);
+        } catch (error) {
+            console.error('Error al decodificar el token:', error);
+            throw new Error(error.message === 'Token expirado' ? 'Token expirado' : 'Token inválido');
+        }
+
+        const { email } = decodedToken;
+        console.log('Email del usuario:', email);
+
+        const usuario = await buscarUsuarioPorEmail(email);
+        if (!usuario) {
+            throw new Error('Usuario no encontrado');
+        }
+
+        if (!req.file) {
+            throw new Error("No se subió ningún archivo");
+        }
+
+        const { originalname, filename } = req.file;
+        const fileUrl = `${BASE_URL}/archivos/${filename}`; 
+
+        const fileContent = await fs.promises.readFile(req.file.path);
+        
+
+        const archivo = await crearArchivo(originalname, fileUrl, usuario.id, req.file.path);
+
+        // Convertir a base64
+        const binaryFile = Buffer.isBuffer(fileContent) ? fileContent : Buffer.from(fileContent);
+        const base64File = binaryFile.toString('base64'); 
+
+        const uploadFile = () => {
+            return new Promise((resolve, reject) => {
+                const call = client.Upload((error, response) => {
+                    if (error) {
+                        reject(error);
+                    } else {
+                        resolve(response);
+                    }
+                });
+
+                // Enviar el archivo a gRPC
+                call.write({
+                    file_id: String(archivo.id),
+                    owner_id: String(usuario.id),
+                    binary_file: base64File, // Enviar archivo completo en base64
+                    file_name: originalname
+                });
+
+                call.end(); 
+            });
+        };
+
+        const grpcResponse = await uploadFile();
+
+        res.status(200).json({
+            message: "Archivo subido exitosamente",
+            fileUrl: fileUrl,
+            usuario: usuario.id,
+            archivoId: archivo.id,
+            grpcFileId: grpcResponse.file_id
+        });
+
+    } catch (error) {
+        console.error('Error en uploadFileGrpc:', error);
+        const statusCode = error.message.includes('Token') ? 401 : 500;
+        res.status(statusCode).json({ error: error.message });
+    } finally {
+        console.log('Finalizando uploadFileGrpc');
+    }
+};
+
+const buscarArchivosGrpc = async (req, res) => {
+    const { token } = req.params;
+
+    if (!token) {
+        return res.status(400).json({ error: "Token no proporcionado en la URL" });
+    }
+
+    let decodedToken;
+    try {
+        decodedToken = decodificarJWT(token);
+    } catch (error) {
+        return res.status(401).json({ error: 'Token inválido o expirado' });
+    }
+
+    const { email } = decodedToken;
+
+    let usuario;
+    try {
+        usuario = await buscarUsuarioPorEmail(email);
+        if (!usuario) {
+            return res.status(404).json({ error: 'Usuario no encontrado' });
+        }
+    } catch (error) {
+        return res.status(500).json({ error: 'Error al buscar el usuario' });
+    }
+
+    const resultado = await buscarArchivosdb(usuario.id); 
+    console.log('Resultado de la búsqueda de archivos:', resultado);
+
+    if (resultado.error) {
+        return res.status(500).json({ error: resultado.error });
+    }
+
+    try {
+        // Usar gRPC para descargar los archivos
+        const archivos = await Promise.all(resultado.map(async (archivo) => {
+            console.log('Archivo ID:', archivo.id);
+            console.log('Usuario ID:', usuario.id);
+
+            const archivoDownloadRequest = {
+                file_id: String(archivo.id),      // ID del archivo
+                owner_id: String(usuario.id)       // ID del propietario
+            };
+
+            return new Promise((resolve, reject) => {
+                const call = client.Download(archivoDownloadRequest);
+                let binaryFile = null;
+
+                call.on('data', (response) => {
+                    binaryFile = response.binary_file_response; 
+                });
+
+                call.on('end', () => {
+                    if (binaryFile) {
+                        // Convertir el Buffer a Base64
+                        const base64File = binaryFile.toString('base64');
+                        resolve({
+                            id: archivo.id,
+                            usuario_id: archivo.usuario_id,
+                            nombre_archivo: archivo.nombre_archivo,
+                            binary_file: base64File
+                        });
+                    } else {
+                        reject(new Error('No se pudo obtener el archivo'));
+                    }
+                });
+
+                call.on('error', (error) => {
+                    reject(error);
+                });
+            });
+        }));
+
+        return res.status(200).json(archivos);
+    } catch (error) {
+        console.error('Error al descargar archivos a través de gRPC:', error);
+        return res.status(500).json({ error: 'Error al descargar archivos' });
+    }
+};
+
+
 
 export default {
     uploadImage,
@@ -488,5 +814,9 @@ export default {
     buscarVideos,
     buscarArchivos,
     uploadImageGrpc,
-    buscarImagenesGrpc
+    buscarImagenesGrpc,
+    uploadVideoGrpc,
+    buscarVideosGrpc,
+    uploadFileGrpc,
+    buscarArchivosGrpc
 };
