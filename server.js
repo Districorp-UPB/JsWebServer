@@ -3,6 +3,7 @@ import clientRoutes from "./routes/clientRoutes.js";
 import fileserverRoutes from "./routes/fileserverRoutes.js";
 import cors from "cors";
 import db from "./config/db.js";
+import setupSwagger from './routes/swagger.js';
 
 process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
 
@@ -29,6 +30,7 @@ app.use("/api/fileserver", fileserverRoutes);
 
 app.listen(PORT, () => {
     console.log(`API corriendo en: http://sistema3.bucaramanga.upb.edu.co:${PORT}`);
+    setupSwagger(app);
 });
 
 
